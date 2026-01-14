@@ -4,6 +4,10 @@ const PermissionWrapper = ({ permission, children }) => {
   const userPermissions = [
     "leads.view",
     "leads.create",
+    "leads.edit",
+    "leads.delete",
+    "leads.assign",
+    "leads.changeStatus",
     "dashboard.view",
   ];
 
