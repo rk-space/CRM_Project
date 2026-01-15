@@ -1,0 +1,100 @@
+// 🔹 Datasource
+datasource db {
+  provider = "postgresql" // or "mysql" if using MySQL
+  url      = env("DATABASE_URL")
+}
+
+// 🔹 Generator
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Lead {
+  lead_id             String   @id @default(uuid())
+  lead_source         String?
+  lead_status         String   @default("New")
+  lead_score          Int      @default(0)
+  first_name          String
+  last_name           String?
+  email               String?  @unique
+  phone               String?  @unique
+  alternate_phone     String?
+  company_name        String?
+  industry            String?
+  annual_revenue      Float?
+  number_of_employees Int?
+  designation         String?
+  city                String?
+  state               String?
+  country             String?
+  assigned_to         String?
+  campaign_id         String?
+  tags                String?
+  remarks             String?
+  company_id          String?
+  branch_id           String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  Timeline LeadTimeline[]
+
+  // 🔹 Back-relations
+  Contacts Contact[]
+  Accounts Account[]
+  Deals    Deal[]
+}
+
+model LeadTimeline {
+  id         String   @id @default(uuid())
+  lead_id    String
+  action     String
+  note       String?
+  created_at DateTime @default(now())
+
+  Lead Lead @relation(fields: [lead_id], references: [lead_id])
+}
+
+model Contact {
+  contact_id String   @id @default(uuid())
+  first_name String
+  last_name  String?
+  email      String?  @unique
+  phone      String?  @unique
+  lead_id    String
+  company_id String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  Lead Lead   @relation(fields: [lead_id], references: [lead_id])
+  Deal Deal[]
+}
+
+model Account {
+  account_id          String   @id @default(uuid())
+  company_name        String
+  industry            String?
+  annual_revenue      Float?
+  number_of_employees Int?
+  lead_id             String
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  Lead Lead   @relation(fields: [lead_id], references: [lead_id])
+  Deal Deal[]
+}
+
+model Deal {
+  deal_id    String   @id @default(uuid())
+  name       String
+  lead_id    String
+  contact_id String
+  account_id String
+  amount     Float?
+  status     String   @default("Open")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  Lead    Lead    @relation(fields: [lead_id], references: [lead_id])
+  Contact Contact @relation(fields: [contact_id], references: [contact_id])
+  Account Account @relation(fields: [account_id], references: [account_id])
+}
