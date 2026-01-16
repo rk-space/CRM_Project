@@ -17,6 +17,10 @@ const generateRefreshToken = (id) => {
     });
 };
 
+function isStrongPassword(password) {
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
+}
+
 // @desc    Register a new user (For testing purposes mostly, or initial setup)
 // @route   POST /api/auth/register
 // @access  Public
@@ -24,9 +28,21 @@ exports.register = async (req, res) => {
     try {
         const { first_name, last_name, email, password, phone } = req.body;
 
+        if (!isStrongPassword(password)) {
+            return res.status(400).json({ message: 'password should contain atleast one upper case , one special char , one number' })
+
+        }
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
+        }
+
+        // Password Policy Enforcement
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({
+                message: 'Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, one number, and one special character.'
+            });
         }
 
         // Get default role 'User' or verify if specific role requested (simplification for Day 1)
