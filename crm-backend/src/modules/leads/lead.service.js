@@ -1,5 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const TIMELINE_EVENTS = require("../common/constants/timelineEvents");
 
 const { addTimelineEvent } = require("./lead.timeline");
 const { calculateLeadScore } = require("./lead.scoring");

@@ -3,25 +3,89 @@ const router = express.Router();
 
 const leadController = require("./lead.controller");
 
-// Create Lead
-router.post("/", leadController.createLead);
+// Middleware
+const authMiddleware = require("../../middleware/auth.middleware");
+const rbac = require("../../middleware/rbac.middleware");
 
-// Get all leads (filters + pagination)
-router.get("/", leadController.getLeads);
+/*
+|--------------------------------------------------------------------------
+| LEADS ROUTES (Enterprise RBAC Protected)
+|--------------------------------------------------------------------------
+| All routes below:
+| - Require Authentication
+| - Enforce Permission-Based Access Control
+| - Are Tenant-Aware via req.user context
+|--------------------------------------------------------------------------
+*/
 
-// Get single lead with timeline
-router.get("/:id", leadController.getLeadById);
+// -------------------------
+// CREATE LEAD
+// -------------------------
+router.post(
+  "/",
+  authMiddleware,
+  rbac(["LEADS_CREATE", "LEADS_WRITE"]),
+  leadController.createLead
+);
 
-// Update lead (general fields)
-router.put("/:id", leadController.updateLead);
+// -------------------------
+// GET ALL LEADS
+// -------------------------
+router.get(
+  "/",
+  authMiddleware,
+  rbac(["LEADS_READ"]),
+  leadController.getLeads
+);
 
-// 🔹 Assign / Reassign Lead
-router.patch("/:id/assign", leadController.assignLead);
+// -------------------------
+// GET SINGLE LEAD
+// -------------------------
+router.get(
+  "/:id",
+  authMiddleware,
+  rbac(["LEADS_READ"]),
+  leadController.getLeadById
+);
 
-// 🔹 Update lead status (AUTO SCORING + TIMELINE)
-router.patch("/:id/status", leadController.updateLeadStatus);
+// -------------------------
+// UPDATE LEAD
+// -------------------------
+router.put(
+  "/:id",
+  authMiddleware,
+  rbac(["LEADS_UPDATE", "LEADS_WRITE"]),
+  leadController.updateLead
+);
 
-// Delete lead
-router.delete("/:id", leadController.deleteLead);
+// -------------------------
+// ASSIGN / REASSIGN LEAD
+// -------------------------
+router.patch(
+  "/:id/assign",
+  authMiddleware,
+  rbac(["LEADS_ASSIGN"]),
+  leadController.assignLead
+);
+
+// -------------------------
+// UPDATE LEAD STATUS
+// -------------------------
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  rbac(["LEADS_UPDATE"]),
+  leadController.updateLeadStatus
+);
+
+// -------------------------
+// DELETE LEAD
+// -------------------------
+router.delete(
+  "/:id",
+  authMiddleware,
+  rbac(["LEADS_DELETE"]),
+  leadController.deleteLead
+);
 
 module.exports = router;

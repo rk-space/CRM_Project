@@ -3,50 +3,55 @@ const leadService = require("./lead.service");
 exports.createLead = async (req, res) => {
   try {
     const lead = await leadService.createLead(req.body, req.user);
-    res.status(201).json({ success: true, data: lead });
+    return res.status(201).json({ success: true, data: lead });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
 exports.getLeads = async (req, res) => {
   try {
     const result = await leadService.getLeads(req.query, req.user);
-    res.json({ success: true, ...result });
+    return res.json({ success: true, ...result });
   } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
 exports.getLeadById = async (req, res) => {
   try {
     const lead = await leadService.getLeadById(req.params.id, req.user);
-    res.json({ success: true, data: lead });
+    return res.json({ success: true, data: lead });
   } catch (err) {
-    res.status(404).json({ success: false, message: err.message });
+    return res.status(404).json({ success: false, message: err.message });
   }
 };
 
 exports.updateLead = async (req, res) => {
   try {
-    const lead = await leadService.updateLead(req.params.id, req.body, req.user);
-    res.json({ success: true, data: lead });
+    const lead = await leadService.updateLead(
+      req.params.id,
+      req.body,
+      req.user
+    );
+    return res.json({ success: true, data: lead });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
 exports.deleteLead = async (req, res) => {
   try {
     await leadService.deleteLead(req.params.id, req.user);
-    res.json({ success: true, message: "Lead deleted successfully" });
+    return res.json({
+      success: true,
+      message: "Lead deleted successfully",
+    });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
+
 exports.assignLead = async (req, res) => {
   try {
     const { assigned_to } = req.body;
@@ -64,17 +69,12 @@ exports.assignLead = async (req, res) => {
       req.user
     );
 
-    res.json({ success: true, data: lead });
+    return res.json({ success: true, data: lead });
   } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
-
-// 🔹 Update Lead Status
 exports.updateLeadStatus = async (req, res) => {
   try {
     const { lead_status } = req.body;
@@ -92,11 +92,8 @@ exports.updateLeadStatus = async (req, res) => {
       req.user
     );
 
-    res.json({ success: true, data: lead });
+    return res.json({ success: true, data: lead });
   } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };

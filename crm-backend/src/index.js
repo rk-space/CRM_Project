@@ -3,7 +3,9 @@ const express = require("express");
 const cors = require("cors");
 const compression = require("compression");
 const helmet = require("helmet");
-const fakeAuth = require("./middleware/fakeAuth");
+
+// ✅ Correct middleware imports
+const authMiddleware = require("./middleware/auth.middleware");
 const leadRoutes = require("./modules/leads/lead.routes");
 
 const app = express();
@@ -17,18 +19,9 @@ app.use(helmet());
 app.use(compression());
 
 /* ============================
-   TEMP AUTH USER (DEV ONLY)
-   → Will be replaced by JWT
+   TEMP DEV AUTH USER (DEV ONLY)
+   → This is optional, can be removed once JWT is fully implemented
 ============================ */
-app.use((req, res, next) => {
-  req.user = {
-    id: "system-user",
-    company_id: "company-1",
-    branch_id: "branch-1",
-    roles: ["ADMIN"],
-  };
-  next();
-});
 
 /* ============================
    ROUTES
@@ -37,7 +30,8 @@ app.get("/", (req, res) => {
   res.json({ message: "CRM Backend Running..." });
 });
 
-app.use("/api/leads", leadRoutes);
+// ✅ Apply auth middleware for all /api routes if needed
+app.use("/api/leads", authMiddleware, leadRoutes);
 
 /* ============================
    GLOBAL ERROR HANDLER
@@ -49,12 +43,11 @@ app.use((err, req, res, next) => {
     message: "Internal Server Error",
   });
 });
-app.use(fakeAuth); // ⬅️ ADD THIS
+
 /* ============================
    SERVER START
 ============================ */
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`🚀 CRM Backend running on port ${PORT}`);
 });
