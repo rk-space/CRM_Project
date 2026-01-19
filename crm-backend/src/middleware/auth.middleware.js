@@ -17,11 +17,19 @@ module.exports = (req, res, next) => {
     if (authHeader === "Bearer dev-token") {
       req.user = {
         userId: "dev-user",
-        companyId: "dev-company",
-        branchId: "dev-branch",
+        companyId: "company-1",    
+        company_id: "company-1",  
+        branchId: "branch-1",      
+        branch_id: "branch-1",     
         role: "ADMIN",
         scope: "company",
-        permissions: ["LEADS_READ", "LEADS_WRITE", "LEADS_ASSIGN"],
+        permissions: [
+          "LEADS_READ",
+          "LEADS_WRITE",
+          "LEADS_ASSIGN",
+          "LEADS_CONVERT",
+          "LEADS_UPDATE"           
+        ],
       };
       return next();
     }
@@ -30,7 +38,6 @@ module.exports = (req, res, next) => {
     // PRODUCTION MODE (JWT)
     // -------------------------
     const token = authHeader.split(" ")[1];
-
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     req.user = {

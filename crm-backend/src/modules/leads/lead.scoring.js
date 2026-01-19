@@ -20,7 +20,6 @@ exports.calculateLeadScore = (lead) => {
       score = 0;
   }
 
-  // Optional: add more scoring based on campaign, tags, industry, etc.
   return score;
 };
 // Lead status scoring rules
