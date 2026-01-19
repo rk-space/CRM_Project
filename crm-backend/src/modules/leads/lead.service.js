@@ -1,15 +1,36 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const TIMELINE_EVENTS = require("../common/constants/timelineEvents");
 
 const { addTimelineEvent } = require("./lead.timeline");
-const { calculateLeadScore } = require("./lead.scoring");
-const { getScoreDelta } = require("./lead.scoring");
-
+const { calculateLeadScore, getScoreDelta } = require("./lead.scoring");
 
 /**
  * ===============================
- * CREATE LEAD (with duplicate check + scoring)
+ * INTERNAL — LOCK CHECK
+ * ===============================
+ */
+async function assertLeadEditable(leadId, user) {
+  const lead = await prisma.lead.findFirst({
+    where: {
+      lead_id: leadId,
+      company_id: user.company_id,
+    },
+  });
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
+
+  if (lead.lead_status === "Converted") {
+    throw new Error("Converted leads are locked and cannot be modified");
+  }
+
+  return lead;
+}
+
+/**
+ * ===============================
+ * CREATE LEAD
  * ===============================
  */
 exports.createLead = async (data, user) => {
@@ -19,7 +40,7 @@ exports.createLead = async (data, user) => {
         OR: [
           data.email ? { email: data.email } : undefined,
           data.phone ? { phone: data.phone } : undefined,
-        ],
+        ].filter(Boolean),
       },
     });
 
@@ -33,7 +54,7 @@ exports.createLead = async (data, user) => {
       ...data,
       company_id: user.company_id,
       branch_id: user.branch_id,
-      assigned_to: user.id,
+      assigned_to: user.userId,
       lead_score: calculateLeadScore({
         ...data,
         lead_status: "New",
@@ -52,7 +73,7 @@ exports.createLead = async (data, user) => {
 
 /**
  * ===============================
- * GET LEADS (Filters + Pagination + Search)
+ * GET LEADS (FILTER + PAGINATION)
  * ===============================
  */
 exports.getLeads = async (query, user) => {
@@ -70,12 +91,10 @@ exports.getLeads = async (query, user) => {
     company_id: user.company_id,
   };
 
-  // Filters
   if (status) where.lead_status = status;
   if (assigned_to) where.assigned_to = assigned_to;
   if (source) where.lead_source = source;
 
-  // Search
   if (search) {
     where.OR = [
       { first_name: { contains: search, mode: "insensitive" } },
@@ -87,7 +106,7 @@ exports.getLeads = async (query, user) => {
 
   const skip = (Number(page) - 1) * Number(limit);
 
-  const [total, leads] = await Promise.all([
+  const [total, data] = await Promise.all([
     prisma.lead.count({ where }),
     prisma.lead.findMany({
       where,
@@ -103,13 +122,13 @@ exports.getLeads = async (query, user) => {
     total,
     page: Number(page),
     limit: Number(limit),
-    data: leads,
+    data,
   };
 };
 
 /**
  * ===============================
- * GET SINGLE LEAD (Scope protected)
+ * GET SINGLE LEAD
  * ===============================
  */
 exports.getLeadById = async (id, user) => {
@@ -118,7 +137,7 @@ exports.getLeadById = async (id, user) => {
       lead_id: id,
       company_id: user.company_id,
       OR: [
-        { assigned_to: user.id },
+        { assigned_to: user.userId },
         { branch_id: user.branch_id },
       ],
     },
@@ -140,6 +159,9 @@ exports.getLeadById = async (id, user) => {
  * ===============================
  */
 exports.updateLead = async (id, data, user) => {
+  // 🔐 LOCK CHECK
+  await assertLeadEditable(id, user);
+
   const lead = await prisma.lead.update({
     where: { lead_id: id },
     data,
@@ -160,6 +182,9 @@ exports.updateLead = async (id, data, user) => {
  * ===============================
  */
 exports.deleteLead = async (id, user) => {
+  // 🔐 LOCK CHECK
+  await assertLeadEditable(id, user);
+
   await prisma.lead.delete({
     where: { lead_id: id },
   });
@@ -177,13 +202,8 @@ exports.deleteLead = async (id, user) => {
  * ===============================
  */
 exports.assignLead = async (leadId, newOwnerId, user) => {
-  const lead = await prisma.lead.findUnique({
-    where: { lead_id: leadId },
-  });
-
-  if (!lead) {
-    throw new Error("Lead not found");
-  }
+  // 🔐 LOCK CHECK
+  const lead = await assertLeadEditable(leadId, user);
 
   if (lead.assigned_to === newOwnerId) {
     throw new Error("Lead already assigned to this user");
@@ -211,53 +231,13 @@ exports.assignLead = async (leadId, newOwnerId, user) => {
 
 /**
  * ===============================
- * UPDATE LEAD STATUS (with scoring)
+ * UPDATE LEAD STATUS
  * ===============================
  */
 exports.updateLeadStatus = async (leadId, newStatus, user) => {
-  const lead = await prisma.lead.findUnique({
-    where: { lead_id: leadId },
-  });
+  // 🔐 LOCK CHECK
+  const lead = await assertLeadEditable(leadId, user);
 
-  if (!lead) {
-    throw new Error("Lead not found");
-  }
-
-  if (lead.lead_status === newStatus) {
-    throw new Error(`Lead already in status: ${newStatus}`);
-  }
-
-  const updatedLead = await prisma.lead.update({
-    where: { lead_id: leadId },
-    data: {
-      lead_status: newStatus,
-      lead_score: calculateLeadScore({
-        ...lead,
-        lead_status: newStatus,
-      }),
-    },
-  });
-
-  await addTimelineEvent(
-    leadId,
-    "LEAD_STATUS_UPDATED",
-    `Status changed from ${lead.lead_status} to ${newStatus}`
-  );
-
-  return updatedLead;
-};
-
-exports.updateLeadStatus = async (leadId, newStatus, user) => {
-  const lead = await prisma.lead.findFirst({
-    where: {
-      lead_id: leadId,
-      company_id: user.company_id,
-    },
-  });
-
-  if (!lead) throw new Error("Lead not found");
-
-  // Same status check
   if (lead.lead_status === newStatus) {
     throw new Error("Lead already in this status");
   }
@@ -272,7 +252,6 @@ exports.updateLeadStatus = async (leadId, newStatus, user) => {
     },
   });
 
-  // Timeline event
   await addTimelineEvent(
     leadId,
     "STATUS_CHANGED",
@@ -280,4 +259,52 @@ exports.updateLeadStatus = async (leadId, newStatus, user) => {
   );
 
   return updatedLead;
+};
+
+/**
+ * ===============================
+ * CONVERT LEAD → ACCOUNT
+ * ===============================
+ */
+exports.convertLeadToContact = async (leadId, user) => {
+  const lead = await prisma.lead.findFirst({
+    where: {
+      lead_id: leadId,
+      company_id: user.company_id,
+    },
+  });
+
+  if (!lead) {
+    throw new Error("Lead not found");
+  }
+
+  if (lead.lead_status === "Converted") {
+    throw new Error("Lead already converted");
+  }
+
+  // Create Account
+  const account = await prisma.account.create({
+    data: {
+      company_name: lead.company_name || lead.last_name || "Individual",
+      company_id: user.company_id,
+      lead_id: lead.lead_id,
+    },
+  });
+
+  // 🔒 Lock Lead
+  await prisma.lead.update({
+    where: { lead_id: leadId },
+    data: {
+      lead_status: "Converted",
+    },
+  });
+
+  // Timeline
+  await addTimelineEvent(
+    lead.lead_id,
+    "LEAD_CONVERTED",
+    `Lead converted to account ${account.company_name}`
+  );
+
+  return { lead, account };
 };

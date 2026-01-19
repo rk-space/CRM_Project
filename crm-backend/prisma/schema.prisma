@@ -35,6 +35,9 @@ model Lead {
   branch_id           String?
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
+    budget           Float?    
+  expectedClose    DateTime?  
+  ownerId          String?   
 
   Timeline LeadTimeline[]
 
@@ -55,33 +58,45 @@ model LeadTimeline {
 }
 
 model Contact {
-  contact_id String   @id @default(uuid())
+  contact_id String  @id @default(uuid())
   first_name String
   last_name  String?
-  email      String?  @unique
-  phone      String?  @unique
+  email      String? @unique
+  phone      String? @unique
+
   lead_id    String
+  account_id String?
   company_id String
+  branch_id  String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  Lead Lead   @relation(fields: [lead_id], references: [lead_id])
-  Deal Deal[]
+  Lead    Lead     @relation(fields: [lead_id], references: [lead_id])
+  Account Account? @relation(fields: [account_id], references: [account_id])
+  Deal    Deal[]
 }
 
 model Account {
   account_id          String   @id @default(uuid())
   company_name        String
+  company_id          String
+
+  branch_id           String?   // ✅ ADD THIS
+
   industry            String?
   annual_revenue      Float?
   number_of_employees Int?
-  lead_id             String
+  lead_id             String?
+
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
-  Lead Lead   @relation(fields: [lead_id], references: [lead_id])
-  Deal Deal[]
+  Lead     Lead?     @relation(fields: [lead_id], references: [lead_id])
+  Deal     Deal[]
+  Contacts Contact[]
 }
+
 
 model Deal {
   deal_id    String   @id @default(uuid())
@@ -89,12 +104,80 @@ model Deal {
   lead_id    String
   contact_id String
   account_id String
+
   amount     Float?
-  status     String   @default("Open")
+  stage      String   @default("Qualification")
+  probability Int     @default(10)
+  expected_close_date DateTime?
+
+  status     String   @default("Open") // Open, Won, Lost
+  company_id String
+  branch_id  String?
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   Lead    Lead    @relation(fields: [lead_id], references: [lead_id])
   Contact Contact @relation(fields: [contact_id], references: [contact_id])
   Account Account @relation(fields: [account_id], references: [account_id])
+}
+
+model User {
+  user_id   String @id @default(uuid())
+  first_name String
+  last_name  String?
+  email      String @unique
+  password_hash String
+  status     String @default("ACTIVE")
+
+  company_id String
+  branch_id  String?
+
+  roles UserRole[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model Role {
+  role_id String @id @default(uuid())
+  name    String @unique
+  description String?
+
+  users UserRole[]
+  permissions RolePermission[]
+
+  created_at DateTime @default(now())
+}
+
+model Permission {
+  permission_id String @id @default(uuid())
+  code String @unique
+  description String?
+
+  roles RolePermission[]
+}
+
+model UserRole {
+  id String @id @default(uuid())
+
+  user_id String
+  role_id String
+
+  User User @relation(fields: [user_id], references: [user_id])
+  Role Role @relation(fields: [role_id], references: [role_id])
+
+  @@unique([user_id, role_id])
+}
+
+model RolePermission {
+  id String @id @default(uuid())
+
+  role_id String
+  permission_id String
+
+  Role Role @relation(fields: [role_id], references: [role_id])
+  Permission Permission @relation(fields: [permission_id], references: [permission_id])
+
+  @@unique([role_id, permission_id])
 }

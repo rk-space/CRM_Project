@@ -1,4 +1,5 @@
 const leadService = require("./lead.service");
+const { convertLead } = require("./lead.conversion")
 
 exports.createLead = async (req, res) => {
   try {
@@ -95,5 +96,29 @@ exports.updateLeadStatus = async (req, res) => {
     return res.json({ success: true, data: lead });
   } catch (err) {
     return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+
+
+
+exports.convert = async (req, res) => {
+  try {
+    const result = await convertLead(
+      req.params.id,
+      req.user,
+      req.body
+    );
+
+    return res.json({
+      success: true,
+      message: "Lead converted successfully",
+      data: result
+    });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
   }
 };
