@@ -159,22 +159,40 @@ exports.getLeadById = async (id, user) => {
  * ===============================
  */
 exports.updateLead = async (id, data, user) => {
-  // 🔐 LOCK CHECK
+  // 🔐 LOCK CHECK (RBAC / ownership / stage rules)
   await assertLeadEditable(id, user);
 
-  const lead = await prisma.lead.update({
-    where: { lead_id: id },
-    data,
+  // 🛡️ Prevent system field tampering
+  const protectedFields = [
+    "lead_id",
+    "company_id",
+    "branch_id",
+    "created_at",
+    "updated_at",
+    "converted"
+  ];
+
+  protectedFields.forEach((field) => {
+    if (field in data) delete data[field];
   });
 
+  const lead = await prisma.lead.update({
+    where: {
+      lead_id: id
+    },
+    data
+  });
+
+  // 🧾 Timeline log
   await addTimelineEvent(
     id,
     "LEAD_UPDATED",
-    "Lead updated"
+    `Lead updated by ${user.userId}`
   );
 
   return lead;
 };
+
 
 /**
  * ===============================
