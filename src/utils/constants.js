@@ -1,5 +1,12 @@
 // Lead Status Configuration
 export const STATUS_CONFIG = {
+<<<<<<< HEAD
+  new: { label: 'New', bgColor: '#dbeafe', textColor: '#1e40af' },
+  contacted: { label: 'Contacted', bgColor: '#e0e7ff', textColor: '#5b21b6' },
+  qualified: { label: 'Qualified', bgColor: '#d1fae5', textColor: '#065f46' },
+  unqualified: { label: 'Unqualified', bgColor: '#fee2e2', textColor: '#991b1b' },
+  converted: { label: 'Converted', bgColor: '#ecfdf5', textColor: '#047857' },
+=======
   new: {
     value: 'new',
     label: 'New',
@@ -30,6 +37,7 @@ export const STATUS_CONFIG = {
     bgColor: '#d1fae5',
     textColor: '#047857',
   },
+>>>>>>> origin/main
 };
 
 export const LEAD_STATUSES = [
@@ -50,6 +58,9 @@ export const LEAD_SOURCES = [
   { value: 'trade_show', label: 'Trade Show' },
   { value: 'partner', label: 'Partner' },
   { value: 'other', label: 'Other' },
+<<<<<<< HEAD
+];
+=======
 ];
 
 // Timeline Event Configuration
@@ -116,3 +127,4 @@ export const PERMISSIONS = {
   LEADS_CHANGE_STATUS: 'leads.changeStatus',
   DASHBOARD_VIEW: 'dashboard.view',
 };
+>>>>>>> origin/main

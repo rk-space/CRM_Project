@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PermissionWrapper from '../../app/permissions/PermissionWrapper';
+import { PRIORITY_CONFIG } from '../../utils/leadConstants';
+import StatusBadge from '../common/StatusBadge';
+import PriorityBadge from '../common/PriorityBadge';
+import ScoreIndicator from '../common/ScoreIndicator';
 
 const LeadsTable = ({ leads, onSort, sortConfig, onSelectionChange }) => {
   const [selectedIds, setSelectedIds] = useState([]);
@@ -51,6 +54,13 @@ const LeadsTable = ({ leads, onSort, sortConfig, onSelectionChange }) => {
             <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Phone</th>
             <th
               style={{ padding: '12px', textAlign: 'left', cursor: 'pointer', borderBottom: '2px solid #ddd' }}
+              onClick={() => handleSort('leadScore')}
+            >
+              Score {getSortIcon('leadScore')}
+            </th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Priority</th>
+            <th
+              style={{ padding: '12px', textAlign: 'left', cursor: 'pointer', borderBottom: '2px solid #ddd' }}
               onClick={() => handleSort('status')}
             >
               Status {getSortIcon('status')}
@@ -83,30 +93,29 @@ const LeadsTable = ({ leads, onSort, sortConfig, onSelectionChange }) => {
               </td>
               <td style={{ padding: '12px' }}>{lead.email || '-'}</td>
               <td style={{ padding: '12px' }}>{lead.phone || '-'}</td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>
+                <ScoreIndicator 
+                  score={lead.leadScore || 0}
+                  leadData={lead}
+                  showBreakdown={false}
+                  size="small"
+                />
+              </td>
               <td style={{ padding: '12px' }}>
-                <span
-                  style={{
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '12px',
-                    backgroundColor: getStatusColor(lead.status),
-                    color: '#fff',
-                  }}
-                >
-                  {lead.status}
-                </span>
+                <PriorityBadge priority={lead.priority} showIcon={true} size="small" />
+              </td>
+              <td style={{ padding: '12px' }}>
+                <StatusBadge status={lead.status} priority={lead.priority} size="small" />
               </td>
               <td style={{ padding: '12px' }}>{lead.owner || 'Unassigned'}</td>
               <td style={{ padding: '12px' }}>{new Date(lead.createdAt).toLocaleDateString()}</td>
               <td style={{ padding: '12px', textAlign: 'center' }}>
-                <PermissionWrapper permission="leads.edit">
-                  <button
-                    onClick={() => navigate(`/leads/${lead.id}/edit`)}
-                    style={{ marginRight: '8px', padding: '4px 8px', cursor: 'pointer' }}
-                  >
-                    Edit
-                  </button>
-                </PermissionWrapper>
+                <button
+                  onClick={() => navigate(`/leads/${lead.id}/edit`)}
+                  style={{ marginRight: '8px', padding: '4px 8px', cursor: 'pointer' }}
+                >
+                  Edit
+                </button>
               </td>
             </tr>
           ))}

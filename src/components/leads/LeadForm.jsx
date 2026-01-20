@@ -2,9 +2,22 @@ import { useState, useEffect } from 'react';
 import FormSection from '../form/FormSection';
 import Input from '../form/Input';
 import Select from '../form/Select';
-import { validateLead, LEAD_STATUSES, LEAD_SOURCES } from '../../utils/validation';
+import MultiSelect from '../form/MultiSelect';
+import { validateLeadData, enhanceLeadData } from '../../utils/leadValidators';
+import { LEAD_STATUSES, LEAD_SOURCES } from '../../utils/constants';
+import { 
+  BUDGET_RANGES, 
+  PRIORITY_LEVELS, 
+  INDUSTRIES, 
+  COMPANY_SIZES, 
+  PRODUCT_INTERESTS 
+} from '../../utils/leadConstants';
+import { calculateLeadScore, getScoreRecommendation } from '../../utils/leadRules';
+import { ErrorBoundary } from '../common';
 
 const LeadForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
+  const isConverted = initialData?.status === 'converted';
+  const isReadOnly = isConverted;
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -16,39 +29,97 @@ const LeadForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
     source: '',
     ownerId: '',
     notes: '',
+    // Advanced CRM Fields
+    manualLeadScore: 0,
+    leadScore: 0, // System calculated
+    minBudget: '',
+    maxBudget: '',
+    priority: '',
+    industry: '',
+    companySize: '',
+    expectedClosureDate: '',
+    productInterests: [],
     ...initialData,
   });
 
   const [errors, setErrors] = useState({});
+  const [autoCalculateScore, setAutoCalculateScore] = useState(!initialData?.manualLeadScore);
+  const [scoreRecommendation, setScoreRecommendation] = useState(null);
 
   useEffect(() => {
     if (initialData) {
       setFormData({ ...formData, ...initialData });
+      setAutoCalculateScore(!initialData.manualLeadScore || initialData.manualLeadScore === 0);
     }
   }, [initialData]);
 
+  // Auto-calculate system score and compare with manual score
+  useEffect(() => {
+    const systemScore = calculateLeadScore(formData);
+    setFormData(prev => ({ ...prev, leadScore: systemScore }));
+    
+    if (formData.manualLeadScore > 0) {
+      const recommendation = getScoreRecommendation({
+        ...formData,
+        leadScore: systemScore
+      });
+      setScoreRecommendation(recommendation);
+    }
+  }, [formData.minBudget, formData.maxBudget, formData.industry, formData.companySize, 
+      formData.priority, formData.productInterests, formData.source, formData.company, 
+      formData.email, formData.phone, formData.manualLeadScore]);
+
   const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+    
     // Clear error on change
     if (errors[field]) {
       setErrors({ ...errors, [field]: null });
+    }
+
+    // If manually changing lead score, disable auto-calculation
+    if (field === 'manualLeadScore') {
+      setAutoCalculateScore(false);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const validation = validateLead(formData);
+    
+    if (isReadOnly) {
+      return; // Prevent submission for converted leads
+    }
+    
+    const enhancedData = enhanceLeadData(formData);
+    const validation = validateLeadData(enhancedData);
     
     if (!validation.isValid) {
       setErrors(validation.errors);
       return;
     }
 
-    onSubmit(formData);
+    onSubmit(enhancedData);
+  };
+
+  const resetAutoCalculation = () => {
+    setAutoCalculateScore(true);
+    const calculatedScore = calculateLeadScore(formData);
+    setFormData(prev => ({ ...prev, leadScore: calculatedScore, manualLeadScore: 0 }));
+    setScoreRecommendation(null);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <div>
+      {/* Converted Lead Warning */}
+      {isConverted && (
+        <ErrorBoundary 
+          message="This lead has been converted and is now read-only. Changes cannot be made to converted leads."
+          type="general"
+          showRetry={false}
+        />
+      )}
+      
+      <form onSubmit={handleSubmit}>
       <FormSection title="Basic Information">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
@@ -102,6 +173,144 @@ const LeadForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
         {errors.contact && <span style={{ color: 'red', fontSize: '12px' }}>{errors.contact}</span>}
       </FormSection>
 
+      <FormSection title="Advanced CRM Scoring">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <label style={{ fontSize: '14px', fontWeight: '500' }}>Manual Lead Score</label>
+              {!autoCalculateScore && (
+                <button
+                  type="button"
+                  onClick={resetAutoCalculation}
+                  style={{
+                    fontSize: '12px',
+                    color: '#0066cc',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Use System Score
+                </button>
+              )}
+            </div>
+            <Input
+              type="number"
+              min="0"
+              max="100"
+              value={formData.manualLeadScore}
+              onChange={(e) => handleChange('manualLeadScore', e.target.value)}
+              placeholder="0-100"
+            />
+            {errors.manualLeadScore && <span style={{ color: 'red', fontSize: '12px' }}>{errors.manualLeadScore}</span>}
+          </div>
+          
+          <div>
+            <label style={{ fontSize: '14px', fontWeight: '500', display: 'block', marginBottom: '4px' }}>System Score (Read-only)</label>
+            <div style={{
+              padding: '8px 12px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '4px',
+              backgroundColor: '#f9fafb',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontWeight: '600', fontSize: '16px' }}>{formData.leadScore}</span>
+              <div style={{
+                flex: 1,
+                height: '6px',
+                backgroundColor: '#e5e7eb',
+                borderRadius: '3px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: `${formData.leadScore}%`,
+                  height: '100%',
+                  backgroundColor: formData.leadScore >= 80 ? '#10b981' : 
+                                  formData.leadScore >= 60 ? '#f59e0b' : '#ef4444'
+                }} />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {scoreRecommendation?.hasDiscrepancy && (
+          <div style={{
+            marginTop: '12px',
+            padding: '12px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #f59e0b',
+            borderRadius: '6px'
+          }}>
+            <div style={{ fontSize: '12px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>SCORE RECOMMENDATION</div>
+            <div style={{ fontSize: '14px', color: '#92400e' }}>{scoreRecommendation.recommendation}</div>
+          </div>
+        )}
+      </FormSection>
+
+      <FormSection title="Budget & Business Details">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Input
+            label="Minimum Budget (₹)"
+            type="number"
+            value={formData.minBudget}
+            onChange={(e) => handleChange('minBudget', e.target.value)}
+            placeholder="e.g., 500000"
+          />
+          <Input
+            label="Maximum Budget (₹)"
+            type="number"
+            value={formData.maxBudget}
+            onChange={(e) => handleChange('maxBudget', e.target.value)}
+            placeholder="e.g., 2500000"
+          />
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Select
+            label="Industry"
+            options={INDUSTRIES}
+            value={formData.industry}
+            onChange={(e) => handleChange('industry', e.target.value)}
+          />
+          <Select
+            label="Company Size"
+            options={COMPANY_SIZES}
+            value={formData.companySize}
+            onChange={(e) => handleChange('companySize', e.target.value)}
+          />
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <Select
+            label="Priority"
+            options={PRIORITY_LEVELS}
+            value={formData.priority}
+            onChange={(e) => handleChange('priority', e.target.value)}
+          />
+          <Input
+            label="Expected Closure Date"
+            type="date"
+            value={formData.expectedClosureDate}
+            onChange={(e) => handleChange('expectedClosureDate', e.target.value)}
+          />
+        </div>
+        
+        {errors.expectedClosureDate && <span style={{ color: 'red', fontSize: '12px' }}>{errors.expectedClosureDate}</span>}
+      </FormSection>
+
+      <FormSection title="Product/Service Interests">
+        <MultiSelect
+          label="Select Products/Services of Interest"
+          options={PRODUCT_INTERESTS}
+          value={formData.productInterests}
+          onChange={(value) => handleChange('productInterests', value)}
+          error={errors.productInterests}
+        />
+      </FormSection>
+
       <FormSection title="Lead Source & Status">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
@@ -131,17 +340,35 @@ const LeadForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
         />
       </FormSection>
 
+      {/* Status Transition Errors */}
+      {errors.statusTransition && (
+        <div style={{ 
+          marginTop: '16px', 
+          padding: '12px', 
+          backgroundColor: '#fee2e2', 
+          border: '1px solid #fecaca',
+          borderRadius: '6px'
+        }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#991b1b' }}>Status Change Blocked:</h4>
+          <ul style={{ margin: 0, paddingLeft: '20px' }}>
+            {errors.statusTransition.map((error, index) => (
+              <li key={index} style={{ color: '#991b1b', fontSize: '14px' }}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || isReadOnly}
           style={{
             padding: '10px 24px',
-            backgroundColor: '#0066cc',
-            color: '#fff',
+            backgroundColor: (isLoading || isReadOnly) ? '#e5e7eb' : '#0066cc',
+            color: (isLoading || isReadOnly) ? '#9ca3af' : '#fff',
             border: 'none',
             borderRadius: '4px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
+            cursor: (isLoading || isReadOnly) ? 'not-allowed' : 'pointer',
           }}
         >
           {isLoading ? 'Saving...' : initialData?.id ? 'Update Lead' : 'Create Lead'}
@@ -162,6 +389,7 @@ const LeadForm = ({ initialData, onSubmit, onCancel, isLoading }) => {
         </button>
       </div>
     </form>
+    </div>
   );
 };
 

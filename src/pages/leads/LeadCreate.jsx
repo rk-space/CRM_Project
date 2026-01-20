@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LeadForm from '../../components/leads/LeadForm';
 import { leadsService } from '../../services/leadsService';
+import { validateLeadData } from '../../utils/leadValidators';
 
 const LeadCreate = () => {
   const navigate = useNavigate();
@@ -11,8 +12,27 @@ const LeadCreate = () => {
   const handleSubmit = async (formData) => {
     setLoading(true);
     setError(null);
+    
+    // Validate lead data with CRM rules
+    const validation = validateLeadData(formData);
+    
+    if (!validation.isValid) {
+      setError('Please fix the validation errors before saving.');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      await leadsService.createLead(formData);
+      const newLead = await leadsService.createLead(formData);
+      
+      // Log creation event
+      await leadsService.addTimelineEvent(newLead.id, {
+        type: 'created',
+        title: 'Lead Created',
+        description: 'Lead was created in the system',
+        metadata: { initialScore: formData.leadScore }
+      });
+      
       navigate('/leads');
     } catch (err) {
       setError(err.message);

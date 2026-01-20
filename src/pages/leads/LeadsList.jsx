@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import LeadsTable from '../../components/leads/LeadsTable';
 import LeadFilters from '../../components/leads/LeadFilters';
-import PermissionWrapper from '../../app/permissions/PermissionWrapper';
 import { leadsService } from '../../services/leadsService';
 
 const LeadsList = () => {
@@ -61,22 +60,20 @@ const LeadsList = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ margin: 0 }}>Leads</h1>
-        <PermissionWrapper permission="leads.create">
-          <button
-            onClick={() => navigate('/leads/create')}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#0066cc',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            + Create Lead
-          </button>
-        </PermissionWrapper>
+        <button
+          onClick={() => navigate('/leads/create')}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#0066cc',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px',
+          }}
+        >
+          + Create Lead
+        </button>
       </div>
 
       {/* Filters */}
