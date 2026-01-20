@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import LeadForm from '../../components/leads/LeadForm';
 import { leadsService } from '../../services/leadsService';
+import { validateLeadData } from '../../utils/leadValidators';
 
 const LeadEdit = () => {
   const { id } = useParams();
@@ -29,8 +30,32 @@ const LeadEdit = () => {
   const handleSubmit = async (formData) => {
     setLoading(true);
     setError(null);
+    
+    // Check if status is being changed
+    const isStatusChange = lead && lead.status !== formData.status;
+    
+    // Validate with status change rules if applicable
+    const validation = validateLeadData(formData, isStatusChange, formData.status);
+    
+    if (!validation.isValid) {
+      setError('Please fix the validation errors before saving.');
+      setLoading(false);
+      return;
+    }
+    
     try {
       await leadsService.updateLead(id, formData);
+      
+      // Log status change if it occurred
+      if (isStatusChange) {
+        await leadsService.addTimelineEvent(id, {
+          type: 'status_change',
+          title: 'Status Changed',
+          description: `Status changed from ${lead.status} to ${formData.status}`,
+          metadata: { fromStatus: lead.status, toStatus: formData.status }
+        });
+      }
+      
       navigate(`/leads/${id}`);
     } catch (err) {
       setError(err.message);
@@ -62,7 +87,7 @@ const LeadEdit = () => {
   );
 };
 
-// Mock data
+// Mock data with CRM fields
 const getMockLead = (id) => ({
   id,
   firstName: 'John',
@@ -71,9 +96,14 @@ const getMockLead = (id) => ({
   phone: '+1234567890',
   company: 'Acme Corp',
   jobTitle: 'CEO',
-  status: 'new',
+  status: 'contacted',
   source: 'website',
   ownerId: '1',
+  leadScore: 45,
+  budget: '10000-50000',
+  priority: 'medium',
+  industry: 'technology',
+  expectedClosureDate: '',
 });
 
 export default LeadEdit;

@@ -26,44 +26,36 @@ const AppRoutes = () => {
       <Route
         path="/leads"
         element={
-          <ProtectedLayout permission="leads.view">
-            <MainLayout>
-              <LeadsList />
-            </MainLayout>
-          </ProtectedLayout>
+          <MainLayout>
+            <LeadsList />
+          </MainLayout>
         }
       />
 
       <Route
         path="/leads/create"
         element={
-          <ProtectedLayout permission="leads.create">
-            <MainLayout>
-              <LeadCreate />
-            </MainLayout>
-          </ProtectedLayout>
+          <MainLayout>
+            <LeadCreate />
+          </MainLayout>
         }
       />
 
       <Route
         path="/leads/:id"
         element={
-          <ProtectedLayout permission="leads.view">
-            <MainLayout>
-              <LeadDetails />
-            </MainLayout>
-          </ProtectedLayout>
+          <MainLayout>
+            <LeadDetails />
+          </MainLayout>
         }
       />
 
       <Route
         path="/leads/:id/edit"
         element={
-          <ProtectedLayout permission="leads.edit">
-            <MainLayout>
-              <LeadEdit />
-            </MainLayout>
-          </ProtectedLayout>
+          <MainLayout>
+            <LeadEdit />
+          </MainLayout>
         }
       />
 
