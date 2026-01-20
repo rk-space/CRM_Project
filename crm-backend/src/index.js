@@ -5,8 +5,12 @@ const compression = require("compression");
 const helmet = require("helmet");
 
 // ✅ Correct middleware imports
+const dealRoutes = require("./modules/deals/deal.routes");
 const authMiddleware = require("./middleware/auth.middleware");
 const leadRoutes = require("./modules/leads/lead.routes");
+
+const contactRoutes = require("./modules/contacts/contact.routes");
+
 
 const app = express();
 
@@ -51,3 +55,9 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 CRM Backend running on port ${PORT}`);
 });
+
+app.use("/api/deals", authMiddleware, dealRoutes);
+
+
+
+app.use("/api/contacts", contactRoutes);

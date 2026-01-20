@@ -1,4 +1,5 @@
 import { STATUS_CONFIG } from '../../utils/constants';
+<<<<<<< HEAD
 import { PRIORITY_CONFIG, COMPANY_SIZE_CONFIG, PRODUCT_INTERESTS } from '../../utils/leadConstants';
 import { getNextBestAction } from '../../utils/leadRules';
 import { getFieldCompletionStatus } from '../../utils/leadValidators';
@@ -242,6 +243,36 @@ const LeadOverview = ({ lead }) => {
           <InfoRow label="Last Updated" value={lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : '-'} />
         </InfoCard>
       </div>
+=======
+
+const LeadOverview = ({ lead }) => {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <InfoCard title="Lead Overview">
+        <InfoRow label="Full Name" value={`${lead.firstName} ${lead.lastName}`} />
+        <InfoRow label="Company" value={lead.company || '-'} />
+        <InfoRow label="Job Title" value={lead.jobTitle || '-'} />
+        <InfoRow label="Status" value={<StatusBadge status={lead.status} />} />
+        <InfoRow label="Owner" value={lead.owner || 'Unassigned'} />
+      </InfoCard>
+
+      <InfoCard title="Contact Information">
+        <InfoRow label="Email" value={lead.email || '-'} />
+        <InfoRow label="Phone" value={lead.phone || '-'} />
+      </InfoCard>
+
+      <InfoCard title="Business Details">
+        <InfoRow label="Industry" value={lead.industry || '-'} />
+        <InfoRow label="Expected Value" value={lead.expectedValue ? `$${lead.expectedValue}` : '-'} />
+        <InfoRow label="Lead Score" value={lead.score || '-'} />
+      </InfoCard>
+
+      <InfoCard title="Lead Meta">
+        <InfoRow label="Source" value={lead.source || '-'} />
+        <InfoRow label="Created At" value={new Date(lead.createdAt).toLocaleString()} />
+        <InfoRow label="Last Updated" value={lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : '-'} />
+      </InfoCard>
+>>>>>>> origin/main
     </div>
   );
 };
@@ -271,8 +302,13 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
+<<<<<<< HEAD
 const CompanySizeBadge = ({ size }) => {
   const config = COMPANY_SIZE_CONFIG[size] || COMPANY_SIZE_CONFIG.smb;
+=======
+const StatusBadge = ({ status }) => {
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.new;
+>>>>>>> origin/main
   
   return (
     <span style={{
@@ -281,13 +317,18 @@ const CompanySizeBadge = ({ size }) => {
       fontSize: '12px',
       fontWeight: '500',
       backgroundColor: config.bgColor,
+<<<<<<< HEAD
       color: config.color,
+=======
+      color: config.textColor,
+>>>>>>> origin/main
     }}>
       {config.label}
     </span>
   );
 };
 
+<<<<<<< HEAD
 const formatBudgetRange = (minBudget, maxBudget) => {
   if (!minBudget && !maxBudget) return '-';
   if (minBudget && maxBudget) {
@@ -304,3 +345,6 @@ const formatIndustry = (industry) => {
 };
 
 export default LeadOverview;
+=======
+export default LeadOverview;
+>>>>>>> origin/main
